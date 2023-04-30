@@ -9,6 +9,8 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Date;
 
+use PDO;
+
 class EventsController extends BaseController
 {
     public function getWarmupEvents() {
@@ -101,6 +103,79 @@ class EventsController extends BaseController
      */
 
     public function getEventsWithWorkshops() {
+
+        //change database file name accordingly
+        $pdo= new PDO('sqlite:D:/xamp/htdocs/laravel-test/database/database.sqlite');
+        
+        $query = "
+        SELECT events.*, GROUP_CONCAT(
+            JSON_OBJECT(
+                'id', workshops.id,
+                'name', workshops.name,
+                'start', workshops.start,
+                'end', workshops.end,
+                'created_at', workshops.created_at,
+                'updated_at', workshops.updated_at
+            )
+        ) as workshops
+        FROM events
+        LEFT JOIN workshops ON events.id = workshops.event_id
+        GROUP BY events.id";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
+
+        $eventsWorkshops = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Close database connection
+        $pdo = null;
+
+        return $eventsWorkshops;
+
+
+
+        /**
+
+
+        Note**
+            The below code uses post process query result but it output the exact result and passed the test
+
+        $pdo= new PDO('sqlite:D:/xamp/htdocs/laravel-test/database/database.sqlite');
+        
+        $events = "SELECT  * FROM events";
+        $workshops = "SELECT * FROM workshops";
+
+
+        $stmt = $pdo->prepare($events);
+        $stmt2 = $pdo->prepare($workshops);
+
+        $stmt->execute();
+        $stmt2->execute();
+
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result2 = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+        // Close database connection
+        $pdo = null;
+
+        $eventsWorkshops = [];
+        
+
+        foreach($results as $key => $event ) {
+            $eventsWorkshops[$key] = $event;
+            foreach($result2 as $workshop) {
+                if($workshop['event_id'] == $event['id']) {
+                    $eventsWorkshops[$key]['workshops'][] = $workshop;
+                }
+            } 
+        }
+
+
+        return $eventsWorkshops;
+
+        **/
+
+
+
         throw new \Exception('implement in coding task 1');
     }
 
