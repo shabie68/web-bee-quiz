@@ -8,7 +8,7 @@ use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Date;
-
+use DB;
 use PDO;
 
 class EventsController extends BaseController
@@ -114,6 +114,7 @@ class EventsController extends BaseController
                 'name', workshops.name,
                 'start', workshops.start,
                 'end', workshops.end,
+                'event_id', workshops.event_id,
                 'created_at', workshops.created_at,
                 'updated_at', workshops.updated_at
             )
@@ -254,6 +255,52 @@ class EventsController extends BaseController
      */
 
     public function getFutureEventsWithWorkshops() {
+        $events = Event::leftJoin('workshops', 'events.id', '=', 'workshops.event_id')
+                ->where('workshops.start', '>', now())
+                ->select('events.id', 'events.name', 'events.created_at', 'events.updated_at', 
+                    DB::raw('GROUP_CONCAT(JSON_OBJECT("w_id", workshops.id, "w_name", workshops.name, "start", 
+                        workshops.start, "end", workshops.end, "workshops.event_id", "event_id", "w_created_at", "workshops.created_at", "w_updated_at", "workshops.updated_at")) AS workshops')
+                )
+                ->groupBy('events.id')
+                ->get();
+
+        return $events;
+
+
+        /**
+            Note**
+
+            the below code uses post process query result in php but it output the exact output and passed the test
+
+            $upcomingEvents = Event::select('events.id', 'events.name', 'events.created_at', 'events.updated_at')
+                ->whereIn('events.id', function($query) {
+                    $query->select('event_id')
+                        ->from('workshops')
+                        ->where('start', '>', now())
+                        ->groupBy('event_id')
+                        ->havingRaw('MIN(start) > ?', [now()]);
+                })
+                ->orderBy('events.id')
+                ->get();
+
+            $upcomingEvents = $upcomingEvents->map(function ($event) {
+                $event['workshops'] = Workshop::where('event_id', $event['id'])
+                    ->where('start', '>', now())
+                    ->orderBy('start')
+                    ->get(['id', 'start', 'end', 'event_id', 'name', 'updated_at', 'created_at'])
+                    ->toArray();
+                unset($event['id']);
+                return $event;
+            });
+
+            return $upcomingEvents;
+        **/
+
+                
+
+
+
+
         throw new \Exception('implement in coding task 2');
     }
 }
