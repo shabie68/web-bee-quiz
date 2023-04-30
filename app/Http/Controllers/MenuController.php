@@ -6,6 +6,8 @@ namespace App\Http\Controllers;
 use App\Models\MenuItem;
 use Illuminate\Routing\Controller as BaseController;
 
+use DB;
+
 class MenuController extends BaseController
 {
     /* TODO: complete getMenuItems so that it returns a nested menu structure from the database
@@ -93,6 +95,26 @@ class MenuController extends BaseController
      */
 
     public function getMenuItems() {
-        throw new \Exception('implement in coding task 3');
+
+            $menuItems = DB::table('menu_items')->orderBy('parent_id')->get();
+            $nestedMenu = $this->buildNestedMenu($menuItems);
+            return $nestedMenu;
+
+            throw new \Exception('implement in coding task 3');
+    
+    }
+
+    public function buildNestedMenu($menuItems, $parentId = null) {
+        $result = [];
+        foreach ($menuItems as $menuItem) {
+            if ($menuItem->parent_id == $parentId) {
+                $children = $this->buildNestedMenu($menuItems, $menuItem->id);
+                if (!empty($children)) {
+                    $menuItem->children = $children;
+                }
+                $result[] = $menuItem;
+            }
+        }
+        return $result;
     }
 }
